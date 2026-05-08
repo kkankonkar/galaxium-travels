@@ -1,0 +1,56 @@
+name: Fixium Code Review Bot
+
+on:
+  issue_comment:
+    types: [created]
+
+# Only allow one review per PR at a time
+concurrency:
+  group: fixium-review-${{ github.event.issue.number }}
+  cancel-in-progress: false
+
+jobs:
+  fixium-review:
+    # Only run on PR comments that contain "Fixium:review"
+    if: |
+      github.event.issue.pull_request &&
+      contains(github.event.comment.body, 'Fixium:review')
+    
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          # Fetch the PR branch
+          ref: refs/pull/${{ github.event.issue.number }}/head
+          fetch-depth: 0
+      
+      - name: Run Fixium Code Review (Docker)
+        run: |
+          docker run --rm \
+            -v ${{ github.workspace }}:/workspace \
+            -w /workspace \
+            -e GITHUB_TOKEN="${{ secrets.GITHUB_TOKEN }}" \
+            -e BOBSHELL_API_KEY="${{ secrets.BOBSHELL_API_KEY }}" \
+            -e FIXIUM_AUTHORIZED_USERS="${{ secrets.FIXIUM_AUTHORIZED_USERS }}" \
+            -e GITHUB_REPOSITORY="${{ github.repository }}" \
+            -e GITHUB_OWNER="${{ github.repository_owner }}" \
+            -e GITHUB_REPO="${{ github.event.repository.name }}" \
+            -e PR_NUMBER="${{ github.event.issue.number }}" \
+            -e COMMENT_BODY="${{ github.event.comment.body }}" \
+            -e COMMENT_USER="${{ github.event.comment.user.login }}" \
+            -e GITHUB_WORKSPACE="/workspace" \
+            ghcr.io/your-org/fixium:latest
+      
+      - name: Upload review artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fixium-review-${{ github.event.issue.number }}
+          path: |
+            review_pr${{ github.event.issue.number }}.json
+          retention-days: 30
+          if-no-files-found: ignore
+
+# Made with Bob
