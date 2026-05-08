@@ -36,7 +36,7 @@ jobs:
       
       - name: Run Fixium Code Review (Docker)
         run: |
-          docker run --rm --platform linux/amd64 \
+          docker run --rm \
             -v ${{ github.workspace }}:/workspace \
             -w /workspace \
             -e GITHUB_TOKEN="${{ secrets.MY_GITHUB_TOKEN }}" \
