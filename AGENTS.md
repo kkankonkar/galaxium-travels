@@ -5,6 +5,14 @@ It is supposed to showcase different challenges that real enterprise systems fac
 
 This file provides guidance to agents when working with code in this repository.
 
+## Agent Rules
+
+### Git Operations
+- **NEVER push code to remote repositories** - Always let the user review and push changes manually
+- **NEVER run `git push`** - This includes any command that pushes to origin or any remote
+- **Stage and commit only** - You may use `git add` and `git commit` but stop there
+- **User controls deployment** - The user decides when and what to push to remote repositories
+
 ## Critical Non-Obvious Patterns
 
 ### Backend Architecture

@@ -26,6 +26,9 @@ jobs:
           ref: refs/pull/${{ github.event.issue.number }}/head
           fetch-depth: 0
       
+      - name: Log in to GitHub Container Registry
+        run: echo "${{ secrets.MY_GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+      
       - name: Run Fixium Code Review (Docker)
         run: |
           docker run --rm \
