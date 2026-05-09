@@ -93,6 +93,7 @@ jobs:
       - name: Run Documentation Analysis (Docker)
         run: |
           docker run --rm \
+            --entrypoint python \
             -v ${{ github.workspace }}:/workspace \
             -w /workspace \
             -e GITHUB_TOKEN="${{ secrets.MY_GITHUB_TOKEN }}" \
@@ -106,7 +107,7 @@ jobs:
             -e COMMENT_USER="${{ github.event.comment.user.login }}" \
             -e GITHUB_WORKSPACE="/workspace" \
             ghcr.io/hpai1990/fixium:latest \
-            python -m fixium.doc_main
+            -m fixium.doc_main
       
       - name: Upload analysis artifacts
         if: always()
