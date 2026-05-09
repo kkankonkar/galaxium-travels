@@ -49,7 +49,7 @@ jobs:
             -e COMMENT_BODY="${{ github.event.comment.body }}" \
             -e COMMENT_USER="${{ github.event.comment.user.login }}" \
             -e GITHUB_WORKSPACE="/workspace" \
-            ghcr.io/maheshz/fixium:latest
+            ghcr.io/hpai1990/fixium:latest
       
       - name: Upload review artifacts
         if: always()
@@ -58,6 +58,63 @@ jobs:
           name: fixium-review-${{ github.event.issue.number }}
           path: |
             review_pr${{ github.event.issue.number }}.json
+          retention-days: 30
+          if-no-files-found: ignore
+  
+  fixium-docs:
+    # Only run on PR comments that contain "Fixium:updatedocs"
+    if: |
+      github.event.issue.pull_request &&
+      contains(github.event.comment.body, 'Fixium:updatedocs')
+    
+    runs-on: ubuntu-latest
+    
+    permissions:
+      contents: read
+      pull-requests: write
+      packages: read
+    
+    # Prevent concurrent doc analysis on same PR
+    concurrency:
+      group: fixium-docs-${{ github.event.issue.number }}
+      cancel-in-progress: false
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          # Fetch the PR branch
+          ref: refs/pull/${{ github.event.issue.number }}/head
+          fetch-depth: 0
+      
+      - name: Log in to GitHub Container Registry
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+      
+      - name: Run Documentation Analysis (Docker)
+        run: |
+          docker run --rm \
+            -v ${{ github.workspace }}:/workspace \
+            -w /workspace \
+            -e GITHUB_TOKEN="${{ secrets.MY_GITHUB_TOKEN }}" \
+            -e BOBSHELL_API_KEY="${{ secrets.BOBSHELL_API_KEY }}" \
+            -e FIXIUM_AUTHORIZED_USERS="${{ secrets.FIXIUM_AUTHORIZED_USERS }}" \
+            -e GITHUB_REPOSITORY="${{ github.repository }}" \
+            -e GITHUB_OWNER="${{ github.repository_owner }}" \
+            -e GITHUB_REPO="${{ github.event.repository.name }}" \
+            -e PR_NUMBER="${{ github.event.issue.number }}" \
+            -e COMMENT_BODY="${{ github.event.comment.body }}" \
+            -e COMMENT_USER="${{ github.event.comment.user.login }}" \
+            -e GITHUB_WORKSPACE="/workspace" \
+            ghcr.io/hpai1990/fixium:latest \
+            python -m fixium.doc_main
+      
+      - name: Upload analysis artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fixium-docs-${{ github.event.issue.number }}
+          path: |
+            docs_analysis_pr${{ github.event.issue.number }}.json
           retention-days: 30
           if-no-files-found: ignore
 
