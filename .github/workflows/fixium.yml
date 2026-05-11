@@ -117,6 +117,74 @@ jobs:
           path: |
             docs_analysis_pr${{ github.event.issue.number }}.json
           retention-days: 30
+  
+  fixium-implement:
+    # Only run on ISSUE comments (not PR comments) that contain "Fixium:implementfix"
+    if: |
+      !github.event.issue.pull_request &&
+      contains(github.event.comment.body, 'Fixium:implementfix')
+    
+    runs-on: ubuntu-latest
+    
+    # Prevent concurrent implementations on same issue
+    concurrency:
+      group: fixium-implement-${{ github.event.issue.number }}
+      cancel-in-progress: false
+    
+    # Required permissions for creating branches and PRs
+    permissions:
+      contents: write        # Create branches and commits
+      pull-requests: write   # Create PRs
+      issues: write          # Comment on issues
+      packages: read         # Pull Docker image
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          # Use default branch
+          ref: ${{ github.event.repository.default_branch }}
+          token: ${{ secrets.MY_GITHUB_TOKEN }}
+      
+      - name: Configure Git
+        run: |
+          git config --global user.name "Fixium Bot"
+          git config --global user.email "fixium-bot@users.noreply.github.com"
+      
+      - name: Log in to GitHub Container Registry
+        run: echo "${{ secrets.MY_GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+      
+      - name: Run Fixium Issue Implementation (Docker)
+        run: |
+          docker run --rm \
+            --entrypoint python \
+            -v ${{ github.workspace }}:/workspace \
+            -w /workspace \
+            -e GITHUB_TOKEN="${{ secrets.MY_GITHUB_TOKEN }}" \
+            -e BOBSHELL_API_KEY="${{ secrets.BOBSHELL_API_KEY }}" \
+            -e FIXIUM_AUTHORIZED_USERS="${{ secrets.FIXIUM_AUTHORIZED_USERS }}" \
+            -e GITHUB_REPOSITORY="${{ github.repository }}" \
+            -e GITHUB_OWNER="${{ github.repository_owner }}" \
+            -e GITHUB_REPO="${{ github.event.repository.name }}" \
+            -e ISSUE_NUMBER="${{ github.event.issue.number }}" \
+            -e COMMENT_BODY="${{ github.event.comment.body }}" \
+            -e COMMENT_USER="${{ github.event.comment.user.login }}" \
+            -e GITHUB_WORKSPACE="/workspace" \
+            ghcr.io/hpai1990/fixium:latest \
+            -m fixium.issue_main
+      
+      - name: Upload implementation artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fixium-implement-${{ github.event.issue.number }}
+          path: |
+            issue_analysis_${{ github.event.issue.number }}.json
+            code_changes_issue${{ github.event.issue.number }}.json
+          retention-days: 30
+          if-no-files-found: ignore
+
           if-no-files-found: ignore
 
 # Made with Bob
