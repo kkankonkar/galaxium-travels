@@ -49,7 +49,7 @@ jobs:
             -e COMMENT_BODY="${{ github.event.comment.body }}" \
             -e COMMENT_USER="${{ github.event.comment.user.login }}" \
             -e GITHUB_WORKSPACE="/workspace" \
-            ghcr.io/hpai1990/fixium:latest
+            ghcr.io/kkankonkar/fixium:latest
       
       - name: Upload review artifacts
         if: always()
