@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 from typing import Optional
 
 
-# Popular route categories (hardcoded for demo)
+# Popular route categories (hardcoded for )
 ROUTE_CATEGORIES = {
     'inner_planets': ['Earth', 'Mars', 'Venus', 'Mercury'],
     'outer_planets': ['Jupiter', 'Saturn', 'Uranus', 'Neptune'],
